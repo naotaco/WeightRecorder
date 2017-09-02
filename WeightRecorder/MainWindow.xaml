@@ -7,6 +7,14 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        
+        <StackPanel Width="200" HorizontalAlignment="Left"  Margin="20">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock Text="port" Margin="4,8"/>
+                <TextBox Name="ComPort" Margin="8" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="COM3" VerticalAlignment="Top" Width="120"/>
+            </StackPanel>
+            <Button Name="ConnectButton" HorizontalAlignment="Stretch" Content="Connect"  VerticalAlignment="Center" Margin="12" Click="ConnectButton_Click"/>
+            <Button Name="DisconnectButton" HorizontalAlignment="Stretch" Content="Disconnect"  VerticalAlignment="Center" Margin="12" Click="DisconnectButton_Click"/>
+            <Button Name="DumpButton" HorizontalAlignment="Stretch" Content="Dump"  VerticalAlignment="Center" Margin="12" Click="DumpButton_Click"/>
+        </StackPanel>
     </Grid>
 </Window>
