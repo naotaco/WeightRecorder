@@ -1,18 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO.Ports;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.IO.Ports;
+using System.Management;
+using System.Text.RegularExpressions;
 
 namespace WeightRecorder
 {
@@ -25,6 +17,7 @@ namespace WeightRecorder
         {
             InitializeComponent();
             Connect();
+            UpdatePortList();
         }
 
         SerialPort serial = null;
@@ -33,6 +26,63 @@ namespace WeightRecorder
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
             Connect();
+        }
+
+        void UpdatePortList()
+        {
+            PortList.Children.Clear();
+
+            try
+            {
+                ManagementObjectSearcher searcher =
+                    new ManagementObjectSearcher("root\\CIMV2",
+                    "SELECT * FROM Win32_PnPEntity");
+
+                foreach (ManagementObject queryObj in searcher.Get())
+                {
+                    if (queryObj["Caption"]?.ToString().Contains("(COM") == true)
+                    {
+                        var name = queryObj["Caption"] as string;
+                        Console.WriteLine("serial port : {0}", name);
+
+                        var button = createButton(name);
+                        var portName = "";
+                        try
+                        {
+                            var mc = Regex.Matches(name, "COM[0-9]");
+                            foreach (var m in mc)
+                            {
+                                portName = m.ToString();
+                                break;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("failed: " + e.Message);
+                        }
+
+                        button.Click += (obj, args) =>
+                        {
+                            ComPort.Text = portName;
+                        };
+                        PortList.Children.Add(button);
+
+                    }
+                }
+            }
+            catch (ManagementException e)
+            {
+                MessageBox.Show(e.Message);
+            }
+        }
+
+        Button createButton(string name)
+        {
+            return new Button()
+            {
+                Content = name,
+                Margin = new Thickness(12, 3, 12, 3),
+            };
         }
 
         private void Connect()
@@ -65,26 +115,61 @@ namespace WeightRecorder
             Console.WriteLine("error received.");
         }
 
+        int ok_count = 0;
+
         private void Serial_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             if (history == null)
             {
                 history = new WeightHistory();
+                history.DumpCompleted += (max) =>
+                {
+                    Application.Current.Dispatcher.Invoke(new Action(() =>
+                    {
+                        MaxWeight.Text = string.Format("Last max: {0}", max);
+                    }));
+                };
             }
 
-            var raw = serial?.ReadExisting();
-            var lines = raw.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = new List<string>();
+            while (serial.BytesToRead > 0)
+            {
+                try
+                {
+                    // ReadExisting may read FROM last newline TO actual last data.
+                    // Call ReadLine several times not to read after newline mark.
+                    lines.Add(serial.ReadLine());
+                }
+                catch (TimeoutException) { break; }
+            }
             foreach (var line in lines)
             {
-                var data = line.Split(new char[] { ' ' });
-                if (data.Length == 5)
+                var data = line.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (data.Length == 3)
                 {
-                    history.Add(
-                        int.Parse(data[0], System.Globalization.NumberStyles.HexNumber),
-                        int.Parse(data[2]));
+                    try
+                    {
+                        var weight = (double)(int.Parse(data[1])) / 10000.0;
+                        history.Add(int.Parse(data[0]), weight);
+                        //Console.WriteLine("OK: " + data);
+                        Application.Current.Dispatcher.Invoke(new Action(() =>
+                        {
+                            CurrentWeight.Text = string.Format("Current: {0:0000.##}", weight);
+                        }));
+                        ok_count++;
+                    }
+                    catch (FormatException ex)
+                    {
+                        Console.WriteLine(ok_count + " records OK.");
+                        ok_count = 0;
+                        Console.WriteLine("Caught Format Exception: " + ex.Message);
+                    }
                 }
                 else
                 {
+                    Console.WriteLine(ok_count + " records OK.");
+                    ok_count = 0;
                     Console.WriteLine("Invalid length of data. " + data);
                 }
 
@@ -103,6 +188,11 @@ namespace WeightRecorder
         {
             Console.WriteLine("Dump");
             history?.Dump();
+        }
+
+        private void RefleshButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdatePortList();
         }
     }
 }

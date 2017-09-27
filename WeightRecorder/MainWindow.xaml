@@ -7,7 +7,11 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        <StackPanel Width="200" HorizontalAlignment="Left"  Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="4*"  />
+            <ColumnDefinition Width="6*"  />
+        </Grid.ColumnDefinitions>
+        <StackPanel  HorizontalAlignment="Stretch"  Margin="20">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <TextBlock Text="port" Margin="4,8"/>
                 <TextBox Name="ComPort" Margin="8" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="COM3" VerticalAlignment="Top" Width="120"/>
@@ -15,6 +19,11 @@
             <Button Name="ConnectButton" HorizontalAlignment="Stretch" Content="Connect"  VerticalAlignment="Center" Margin="12" Click="ConnectButton_Click"/>
             <Button Name="DisconnectButton" HorizontalAlignment="Stretch" Content="Disconnect"  VerticalAlignment="Center" Margin="12" Click="DisconnectButton_Click"/>
             <Button Name="DumpButton" HorizontalAlignment="Stretch" Content="Dump"  VerticalAlignment="Center" Margin="12" Click="DumpButton_Click"/>
+            <Button Name="RefleshButton" HorizontalAlignment="Stretch" Content="Reflesh"  VerticalAlignment="Center" Margin="12" Click="RefleshButton_Click"/>
+
+            <TextBlock Name="CurrentWeight"/>
+            <TextBlock Name="MaxWeight"/>
         </StackPanel>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Top" x:Name="PortList" Margin="8,24"  />
     </Grid>
 </Window>
